@@ -3,49 +3,46 @@ name: Build fnos-store
 on:
   # 允许你在 Actions 页面手动点击运行
   workflow_dispatch:
-  # 当你 push 代码到 main 分支时自动运行（可选）
+  # 当你 push 代码到 main 分支时自动运行
   push:
     branches: [ "main" ]
 
 jobs:
   build:
-    # 由于需要运行 build.sh 并生成 Linux 二进制和 fpk 包，使用 Ubuntu 环境最合适
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 1. 配置 Go 环境
+    # 1. 配置 Go 环境 (改成 stable，避免版本不匹配报错)
     - name: Setup Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21' # 如果项目 go.mod 里指定了别的版本，请修改这里
+        go-version: 'stable'
+        # 关闭自动缓存，避免因为缺少 go.sum 报错
+        cache: false
 
     # 2. 配置 Node.js 环境
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20' # 建议使用 LTS 版本
+        node-version: '20'
 
-    # 3. 赋予 build.sh 执行权限（防止脚本没权限报错）
+    # 3. 赋予脚本执行权限
     - name: Make build script executable
       run: chmod +x ./build.sh
 
-    # 4. 执行构建脚本
-    # 这里假设 build.sh 内部已经包含了 npm install 和 go build 的逻辑
+    # 4. 执行构建
     - name: Run build script
       run: ./build.sh
 
-    # 5. 上传构建产物 (Artifacts)
-    # 这样编译完成后，你可以在网页上下载到生成的文件
+    # 5. 上传构建产物
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: fnos-store-build-output
-        # 这里需要根据 build.sh 实际生成的文件路径来填。
-        # 下面这些是常见路径，如果报错“找不到文件”，请看下面的【关键注意事项】
         path: |
-          ./*.fpk
-          ./store-server-*
-          ./dist/
+          *.fpk
+          store-server-*
+          dist/
