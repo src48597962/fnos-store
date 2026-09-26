@@ -1,0 +1,64 @@
+name: Build and Release fpk
+
+on:
+  # 允许你在 Actions 页面手动点击运行
+  workflow_dispatch:
+  # 当你打 v* 标签时自动运行（保留原作者的发布逻辑）
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmmirror.com'
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: false
+
+      # 关键步骤：修复 Windows 换行符 + 赋予执行权限 + 运行 build.sh
+      - name: Run build.sh to create fpk
+        run: |
+          sed -i 's/\r$//' ./build.sh
+          chmod +x ./build.sh
+          ./build.sh
+
+      # 上传构建产物 (.fpk 和二进制)
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fnos-store-build-output
+          path: |
+            *.fpk
+            store-server-*
+            dist/
+            release/
+
+      # 如果你打了 tag，就把产物发布到 Releases
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG="${{ github.ref_name }}"
+          gh release create "$TAG" \
+            --title "fnos-store $TAG" \
+            --generate-notes \
+            *.fpk \
+            store-server-* \
+            --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
