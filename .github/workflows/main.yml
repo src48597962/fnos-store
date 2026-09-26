@@ -35,7 +35,7 @@ jobs:
       - name: Download fnpack
         run: |
           mkdir -p build
-          curl -L -o build/fnpack "https://static2.fnnas.com/fnpack/fnpack-1.2.3-windows-amd64"
+          curl -L -o build/fnpack "https://static2.fnnas.com/fnpack/fnpack-1.2.3-linux-amd64"
           chmod +x build/fnpack
           # 验证是否下载成功
           ./build/fnpack --version || echo "fnpack 下载完成"
